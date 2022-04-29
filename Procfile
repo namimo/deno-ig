@@ -1,1 +1,1 @@
-web: deno task build && deno task start
+web: deno task compile && deno task start

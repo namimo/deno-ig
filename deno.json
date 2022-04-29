@@ -4,6 +4,7 @@
   "tasks": {
     "start": "server",
     "dev": "deno run --watch --allow-env --allow-read --allow-net index.ts",
-    "build": "deno bundle index.ts index.js && deno compile --allow-env --allow-read --allow-net --output ./server index.js && rm -rf index.js"
+    "bundle": "deno bundle index.ts index.js",
+    "compile": "deno compile --allow-env --allow-read --allow-net --output ./server index.js"
   }
 }
