@@ -15128,6 +15128,7 @@ const config1 = {
     appId: Deno.env.get("APP_ID"),
     appSecret: Deno.env.get("APP_SECRET"),
     appUrl: Deno.env.get("APP_URL"),
+    pageId: Deno.env.get("PAGE_ID"),
     pageAccessToken: Deno.env.get("PAGE_ACCESS_TOKEN"),
     verifyToken: Deno.env.get("VERIFY_TOKEN"),
     port: Deno.env.get("PORT"),
@@ -15138,6 +15139,7 @@ const config1 = {
         return `${this.appUrl}/webhook`;
     }
 };
+console.log("For Europe");
 const setWebhookURL = async (callbackUrl)=>{
     const url = new URL(`https://graph.facebook.com/${config1.appId}/subscriptions`);
     url.search = new URLSearchParams({
@@ -15161,7 +15163,7 @@ const setWebhookURL = async (callbackUrl)=>{
         });
     }
 };
-const callSendApi = async (pageAccessToken, requestBody)=>{
+const callSendApi = async (pageAccessToken, options9)=>{
     const url = new URL(`${config1.apiUrl}/me/messages`);
     url.search = new URLSearchParams({
         access_token: pageAccessToken
@@ -15171,7 +15173,7 @@ const callSendApi = async (pageAccessToken, requestBody)=>{
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(options9)
     });
     if (!response.ok) {
         const error8 = await response.json();
@@ -15180,6 +15182,43 @@ const callSendApi = async (pageAccessToken, requestBody)=>{
             ...error8
         });
     }
+};
+const getConversations = async (pageAccessToken, options10)=>{
+    const { pageId , userId  } = options10;
+    const url = new URL(`${config1.apiUrl}/${pageId}/conversations`);
+    url.search = new URLSearchParams({
+        access_token: pageAccessToken,
+        platform: "instagram",
+        user_id: userId,
+        fields: "messages.limit(15){from,to,message}"
+    }).toString();
+    const response = await fetch(url.href);
+    const data = await response.json();
+    if (!response.ok) {
+        console.warn({
+            msg: "Could not load conversations",
+            ...data
+        });
+    }
+    return data;
+};
+const getPost = async (pageAccessToken, options11)=>{
+    const { id  } = options11;
+    const url = new URL(`${config1.apiUrl}/${id}`);
+    url.search = new URLSearchParams({
+        access_token: pageAccessToken,
+        fields: "caption"
+    }).toString();
+    const response = await fetch(url.href);
+    const data = await response.json();
+    if (!response.ok) {
+        console.warn({
+            msg: "Could not load post",
+            id,
+            ...response
+        });
+    }
+    return data;
 };
 const router = new Router();
 router.get("/", (ctx)=>{
@@ -15209,13 +15248,23 @@ router.post("/webhook", async (ctx)=>{
                 if (!("messaging" in entry)) {
                     console.warn("No messaging field in entry. Possibly a webhook test.");
                 } else {
-                    entry.messaging.forEach((event)=>{
+                    entry.messaging.forEach(async (event)=>{
                         if ("message" in event && "is_echo" in event.message && event.message.is_echo === true) {
-                            console.info("Got an echo");
                             return;
                         }
                         const { message , sender  } = event;
                         const senderIgsid = sender.id;
+                        console.time("conversations");
+                        await getConversations(config1.pageAccessToken, {
+                            pageId: config1.pageId,
+                            userId: senderIgsid
+                        });
+                        console.timeEnd("conversations");
+                        console.time("post");
+                        await getPost(config1.pageAccessToken, {
+                            id: "17936743154054340"
+                        });
+                        console.timeEnd("post");
                         callSendApi(config1.pageAccessToken, {
                             recipient: {
                                 id: senderIgsid
@@ -15244,9 +15293,9 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 app.addEventListener("listen", async ({ hostname , port , secure: secure3  })=>{
     console.log(`Listening on: ${secure3 ? "https://" : "http://"}${hostname ?? "localhost"}:${port}`);
-    console.time();
+    console.time("webhook");
     await setWebhookURL(config1.webhookUrl);
-    console.timeEnd();
+    console.timeEnd("webhook");
 });
 app.listen({
     port: parseInt(config1.port, 10)

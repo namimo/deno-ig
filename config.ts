@@ -11,6 +11,7 @@ const config = {
   appId: Deno.env.get("APP_ID")!,
   appSecret: Deno.env.get("APP_SECRET")!,
   appUrl: Deno.env.get("APP_URL")!,
+  pageId: Deno.env.get("PAGE_ID")!,
   pageAccessToken: Deno.env.get("PAGE_ACCESS_TOKEN")!,
   verifyToken: Deno.env.get("VERIFY_TOKEN")!,
 
